@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>理想の形</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- タイトル画面 -->
+    <section id="titleScreen" class="screen active">
+
+        <h1>理想の形</h1>
+
+        <p>
+            人が求める「理想の犬」を繁殖していきます。
+        </p>
+
+        <button onclick="showScreen('breedScreen')">
+            はじめる
+        </button>
+
+    </section>
+
+
+    <!-- 繁殖画面 -->
+    <section id="breedScreen" class="screen">
+
+    <h2>現在 1 / 5 世代</h2>
+
+    <div class="parent-container">
+
+        <!-- 雌犬 -->
+        <div class="dog-card">
+
+            <h3>♀ 雌犬</h3>
+
+            <div class="dog-image"></div>
+
+            <p>個体未選択</p>
+
+            <button onclick="openSelect('female')">
+                個体を選択
+            </button>
+
+        </div>
+
+        <!-- 雄犬 -->
+        <div class="dog-card">
+
+            <h3>♂ 雄犬</h3>
+
+            <div class="dog-image"></div>
+
+            <p>個体未選択</p>
+
+            <button onclick="openSelect('male')">
+                個体を選択
+            </button>
+
+        </div>
+
+    </div>
+
+    <button onclick="showScreen('resultScreen')">
+        繁殖する
+    </button>
+
+</section>
+
+<!-- 選択画面 -->
+<section id="selectScreen" class="screen">
+
+    <h2 id="selectTitle">親犬を選択</h2>
+
+    <div class="select-container">
+
+        <div class="dog-card">
+
+            <div class="dog-image"></div>
+
+            <p>白</p>
+            <p>立ち耳</p>
+            <p>活発</p>
+
+            <button onclick="selectDog('白')">
+                選択
+            </button>
+
+        </div>
+
+        <div class="dog-card">
+
+            <div class="dog-image"></div>
+
+            <p>黒</p>
+            <p>垂れ耳</p>
+            <p>温厚</p>
+
+            <button onclick="selectDog('黒')">
+                選択
+            </button>
+
+        </div>
+
+        <div class="dog-card">
+
+            <div class="dog-image"></div>
+
+            <p>茶</p>
+            <p>立ち耳</p>
+            <p>人懐っこい</p>
+
+            <button onclick="selectDog('茶')">
+                選択
+            </button>
+
+        </div>
+
+    </div>
+
+    <button onclick="showScreen('breedScreen')">
+        戻る
+    </button>
+
+</section>
+
+    <!-- 結果画面 -->
+    <section id="resultScreen" class="screen">
+
+        <h2>子犬が生まれました</h2>
+
+        <p>（ここに犬の情報が表示されます）</p>
+
+        <button onclick="showScreen('endingScreen')">
+            次へ
+        </button>
+
+    </section>
+
+
+    <!-- エンディング -->
+    <section id="endingScreen" class="screen">
+
+        <h2>終了</h2>
+
+        <p>
+
+            あなたは理想の犬を作りました。
+
+        </p>
+
+        <button onclick="showScreen('titleScreen')">
+
+            タイトルへ戻る
+
+        </button>
+
+    </section>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
