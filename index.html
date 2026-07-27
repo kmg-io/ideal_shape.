@@ -29,7 +29,9 @@
     <!-- 繁殖画面 -->
     <section id="breedScreen" class="screen">
 
-    <h2>現在 1 / 5 世代</h2>
+    <h2 id="generationText">
+        現在 1 / 5 世代
+    </h2>
 
     <div class="parent-container">
 
@@ -40,7 +42,11 @@
 
             <div class="dog-image"></div>
 
-            <p>個体未選択</p>
+            <div id="femaleInfo">
+
+                <p>個体未選択</p>
+
+            </div>
 
             <button onclick="openSelect('female')">
                 個体を選択
@@ -55,7 +61,11 @@
 
             <div class="dog-image"></div>
 
+            <div id="maleInfo">
+
             <p>個体未選択</p>
+
+            </div>
 
             <button onclick="openSelect('male')">
                 個体を選択
@@ -76,49 +86,7 @@
 
     <h2 id="selectTitle">親犬を選択</h2>
 
-    <div class="select-container">
-
-        <div class="dog-card">
-
-            <div class="dog-image"></div>
-
-            <p>白</p>
-            <p>立ち耳</p>
-            <p>活発</p>
-
-            <button onclick="selectDog('白')">
-                選択
-            </button>
-
-        </div>
-
-        <div class="dog-card">
-
-            <div class="dog-image"></div>
-
-            <p>黒</p>
-            <p>垂れ耳</p>
-            <p>温厚</p>
-
-            <button onclick="selectDog('黒')">
-                選択
-            </button>
-
-        </div>
-
-        <div class="dog-card">
-
-            <div class="dog-image"></div>
-
-            <p>茶</p>
-            <p>立ち耳</p>
-            <p>人懐っこい</p>
-
-            <button onclick="selectDog('茶')">
-                選択
-            </button>
-
-        </div>
+    <div class="select-container" id="selectContainer">
 
     </div>
 
@@ -135,9 +103,9 @@
 
         <p>（ここに犬の情報が表示されます）</p>
 
-        <button onclick="showScreen('endingScreen')">
-            次へ
-        </button>
+        <button onclick="nextGeneration()">
+    次の世代へ
+</button>
 
     </section>
 
