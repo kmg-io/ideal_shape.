@@ -1,137 +1,104 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-    <meta charset="UTF-8">
-    <title>理想の形</title>
-
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>理想の形 — プロトタイプ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-    <!-- タイトル画面 -->
-    <section id="titleScreen" class="screen active">
+<header class="masthead">
+  <h1>理想の形</h1>
+  <div class="trend-mini">
+    <div class="icon-box" id="trendIconMini"></div>
+    <span id="trendText"></span>
+  </div>
+  <div class="gen-badge" id="genBadge">世代 1 / 5</div>
+</header>
 
-        <h1>理想の形</h1>
+<div class="stage">
 
-        <p>
-            人が求める「理想の犬」を繁殖していきます。
-        </p>
-
-        <button onclick="showScreen('breedScreen')">
-            はじめる
-        </button>
-
-    </section>
-
-
-    <!-- 繁殖画面 -->
-    <section id="breedScreen" class="screen">
-
-    <h2 id="generationText">
-        現在 1 / 5 世代
-    </h2>
-
-    <div class="parent-container">
-
-        <!-- 雌犬 -->
-        <div class="dog-card">
-
-            <h3>♀ 雌犬</h3>
-
-            <div class="dog-image"></div>
-
-            <div id="femaleInfo">
-
-                <p>個体未選択</p>
-
-            </div>
-
-            <button onclick="openSelect('female')">
-                個体を選択
-            </button>
-
-        </div>
-
-        <!-- 雄犬 -->
-        <div class="dog-card">
-
-            <h3>♂ 雄犬</h3>
-
-            <div class="dog-image"></div>
-
-            <div id="maleInfo">
-
-            <p>個体未選択</p>
-
-            </div>
-
-            <button onclick="openSelect('male')">
-                個体を選択
-            </button>
-
-        </div>
-
+  <!-- SELECT SCREEN -->
+  <div class="screen active" id="screen-select">
+    <div class="tabs">
+      <div class="tab-btn active" id="tabM" data-sex="M">♂ オス</div>
+      <div class="tab-btn" id="tabF" data-sex="F">♀ メス</div>
     </div>
-
-    <button onclick="showScreen('resultScreen')">
-        繁殖する
-    </button>
-
-</section>
-
-<!-- 選択画面 -->
-<section id="selectScreen" class="screen">
-
-    <h2 id="selectTitle">親犬を選択</h2>
-
-    <div class="select-container" id="selectContainer">
-
+    <div class="warning-msg" id="warningMsg"></div>
+    <div class="select-body">
+      <div class="cand-grid" id="candGrid"></div>
+      <div class="slots">
+        <div class="slot" id="slotF"><div class="slot-label">♀ メス</div><div class="sname">未選択</div></div>
+        <div class="slot" id="slotM"><div class="slot-label">♂ オス</div><div class="sname">未選択</div></div>
+        <button class="next-btn" id="nextBtn" disabled>次へ</button>
+      </div>
     </div>
+  </div>
 
-    <button onclick="showScreen('breedScreen')">
-        戻る
-    </button>
+  <!-- CROSSBREED SCREEN -->
+  <div class="screen" id="screen-crossbreed">
+    <div class="cb-title">クロスブリーディングを開始します</div>
+    <div class="cb-pair">
+      <div class="cb-unit">
+        <div class="icon-box" id="cbMaleIcon"></div>
+        <div class="pedestal"></div>
+        <div class="clabel" id="cbMaleLabel"></div>
+      </div>
+      <div class="cb-unit">
+        <div class="icon-box" id="cbFemaleIcon"></div>
+        <div class="pedestal"></div>
+        <div class="clabel" id="cbFemaleLabel"></div>
+      </div>
+    </div>
+    <div class="cb-action"><button id="startBreedBtn">開始する</button></div>
+  </div>
 
-</section>
+  <!-- RESULT SCREEN -->
+  <div class="screen" id="screen-result">
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-body">
+      <div class="info-panel" id="infoPanel"></div>
+      <div class="pup-stage"><div class="icon-box" id="pupIcon"></div></div>
+    </div>
+    <div class="result-actions">
+      <button class="primary" id="keepBtn">繁殖犬として残す</button>
+      <button id="shopBtn">ペットショップへ売る</button>
+      <button id="selfSellBtn">自分で売る</button>
+    </div>
+  </div>
 
-    <!-- 結果画面 -->
-    <section id="resultScreen" class="screen">
+  <!-- RETIRE SCREEN -->
+  <div class="screen" id="screen-retire">
+    <div class="retire-body">
+      <div class="retire-visual">
+        <div class="icon-box" id="retireIcon"></div>
+        <div class="rlabel" id="retireLabel"></div>
+      </div>
+      <div class="retire-text">
+        <p>生涯出産回数に達しました。<br>6歳まで繁殖可能です。</p>
+        <div class="retire-actions">
+          <button id="retireKeepBtn">繁殖犬として残す</button>
+          <button id="retireAdoptBtn">里親に出す</button>
+          <button id="retireSellBtn">自分で売る</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        <h2>子犬が生まれました</h2>
+</div>
 
-        <p>（ここに犬の情報が表示されます）</p>
+<div class="modal-overlay" id="idealModal">
+  <div class="modal-card">
+    <div class="modal-title">今季、市場が求めている理想像</div>
+    <div class="icon-box" id="idealModalIcon"></div>
+    <div class="modal-desc" id="idealModalDesc"></div>
+    <button id="idealModalOk">OK</button>
+  </div>
+</div>
 
-        <button onclick="nextGeneration()">
-    次の世代へ
-</button>
-
-    </section>
-
-
-    <!-- エンディング -->
-    <section id="endingScreen" class="screen">
-
-        <h2>終了</h2>
-
-        <p>
-
-            あなたは理想の犬を作りました。
-
-        </p>
-
-        <button onclick="showScreen('titleScreen')">
-
-            タイトルへ戻る
-
-        </button>
-
-    </section>
-
-
-    <script src="script.js"></script>
-
+<script src="script.js"></script>
 </body>
-
 </html>
