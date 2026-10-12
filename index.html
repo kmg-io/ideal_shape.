@@ -18,7 +18,8 @@
   </div>
   <div class="header-right">
     <div class="revenue" id="revenueBadge">総収益 ¥0</div>
-    <div class="gen-badge" id="genBadge">世代 1 / 5</div>
+    <div class="gen-badge" id="genBadge">繁殖 0 / 5</div>
+    <button class="end-btn" id="endBtn">体験を終了する</button>
   </div>
 </header>
 
@@ -91,6 +92,29 @@
     </div>
   </div>
 
+  <!-- ENDING SCREEN -->
+  <div class="screen" id="screen-ending">
+    <div class="end-summary">
+      <div class="end-sub" id="endSub"></div>
+      <div class="end-revenue" id="endRevenue"></div>
+      <div class="end-sub">総収益</div>
+      <div class="end-counts" id="endCounts"></div>
+    </div>
+    <div class="ledger-list" id="ledgerList"></div>
+    <div class="end-footer"><button id="restartBtn">最初からやり直す</button></div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="endModal" style="z-index:60;">
+  <div class="modal-card">
+    <div class="modal-title" id="endModalTitle"></div>
+    <div class="modal-desc" id="endModalDesc"></div>
+    <div class="modal-btns">
+      <button id="endModalPrimary"></button>
+      <button id="endModalSecondary" class="secondary"></button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="idealModal">

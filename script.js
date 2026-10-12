@@ -39,7 +39,24 @@ function selfSellRate(popularity){
 }
 function formatYen(n){ return '¥' + n.toLocaleString(); }
 
-let genCount = 1;
+/* ---------- 体験の長さ ----------
+   ・いつでも「体験を終了する」ボタンで終われる
+   ・繁殖が5回終わると「終了」か「もう少し続ける（+5回）」を選ぶ
+   ・10回に達したら必ず終了
+------------------------------------------------------------ */
+const ROUNDS_FIRST = 5;
+const ROUNDS_EXTEND = 5;
+const ROUNDS_ABSOLUTE_MAX = 10;
+let roundCount = 0;            // 完了した繁殖の回数
+let maxRounds = ROUNDS_FIRST;  // 現在の上限
+
+/* ---------- 全記録（最終画面の記録簿用）----------
+   allDogs: 初期犬＋生まれた子犬すべて（売ったり手放した犬も残す）
+   outcomes: 犬のid → {status:'sold'|'adopted', amount}
+------------------------------------------------------------ */
+let allDogs = dogs.slice();
+let outcomes = {};
+
 let childCounter = 1;
 let selTab = 'M';
 let selectedMaleId = null;
@@ -114,6 +131,10 @@ function dogSVG(dog){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // 「売る／残す」の判断が途中の画面では終了ボタンを押せない。最終画面では非表示。
+  const endBtn = document.getElementById('endBtn');
+  endBtn.disabled = (id==='screen-result' || id==='screen-retire');
+  endBtn.style.display = (id==='screen-ending') ? 'none' : '';
 }
 
 /* ---------- ヘッダー ---------- */
@@ -122,7 +143,7 @@ function idealAsDog(ideal){
 }
 
 function renderHeader(){
-  document.getElementById('genBadge').textContent = `世代 ${genCount} / 5`;
+  document.getElementById('genBadge').textContent = `繁殖 ${roundCount} / ${maxRounds}`;
   document.getElementById('revenueBadge').textContent = `総収益 ${formatYen(totalRevenue)}`;
   document.getElementById('trendIconMini').innerHTML = dogSVG(idealAsDog(currentIdeal));
   document.getElementById('trendText').innerHTML = `今季の理想像：<b>${describeIdeal(currentIdeal)}</b>`;
@@ -218,6 +239,10 @@ document.getElementById('startBreedBtn').addEventListener('click', ()=>{
   const female = dogs.find(d=>d.id===selectedFemaleId);
   lastChild = breed(male, female);
   lastParents = {male, female};
+  roundCount++;
+  lastChild.round = roundCount;
+  allDogs.push(lastChild);
+  renderHeader();
   female.breedingCount++;
   // 引退イベントは、ちょうど上限回数(3回)に達した瞬間だけ表示する。
   // ここで「繁殖犬として残す」を選んだ場合、4回目の繁殖も可能になるが、
@@ -282,7 +307,11 @@ function renderResultScreen(){
 let lastOffers = {shop:0, self:0};
 
 function afterResultAction(keepChild, earned){
-  if(keepChild) dogs.push(lastChild);
+  if(keepChild){
+    dogs.push(lastChild);
+  } else {
+    outcomes[lastChild.id] = {status:'sold', amount: earned || 0};
+  }
   totalRevenue += (earned || 0);
   renderHeader();
   if(retirePending){
@@ -308,7 +337,12 @@ function renderRetireScreen(){
 let retireSellAmount = 0;
 
 function finishRetire(remove, earned){
-  if(remove){ dogs = dogs.filter(d=>d.id!==retirePending.id); }
+  if(remove){
+    dogs = dogs.filter(d=>d.id!==retirePending.id);
+    outcomes[retirePending.id] = (earned > 0)
+      ? {status:'sold', amount: earned}
+      : {status:'adopted', amount: 0};
+  }
   totalRevenue += (earned || 0);
   retirePending = null;
   advanceGeneration(); // 内部でヘッダー（総収益）も更新される
@@ -319,7 +353,11 @@ document.getElementById('retireSellBtn').addEventListener('click', ()=> finishRe
 
 /* ---------- 世代を進める ---------- */
 function advanceGeneration(){
-  genCount = Math.min(5, genCount+1);
+  // 繁殖回数が上限に達していたら、次の選択画面には進まず終了の確認を出す
+  if(roundCount >= maxRounds){
+    showLimitPrompt();
+    return;
+  }
   previousIdeal = cloneIdeal(currentIdeal);
   currentIdeal = nextIdeal(currentIdeal);
   selectedMaleId = null; selectedFemaleId = null;
@@ -328,6 +366,97 @@ function advanceGeneration(){
   showScreen('screen-select');
   showIdealModal();
 }
+
+/* ---------- 体験の終了 ---------- */
+function showEndModal({title, desc, primaryLabel, onPrimary, secondaryLabel, onSecondary}){
+  document.getElementById('endModalTitle').textContent = title;
+  document.getElementById('endModalDesc').textContent = desc;
+  const p = document.getElementById('endModalPrimary');
+  const s = document.getElementById('endModalSecondary');
+  p.textContent = primaryLabel;
+  p.onclick = ()=>{ hideEndModal(); onPrimary(); };
+  if(secondaryLabel){
+    s.style.display = '';
+    s.textContent = secondaryLabel;
+    s.onclick = ()=>{ hideEndModal(); onSecondary(); };
+  } else {
+    s.style.display = 'none';
+  }
+  document.getElementById('endModal').classList.add('show');
+}
+function hideEndModal(){ document.getElementById('endModal').classList.remove('show'); }
+
+// 上限（5回／10回）に達したとき
+function showLimitPrompt(){
+  if(maxRounds >= ROUNDS_ABSOLUTE_MAX){
+    showEndModal({
+      title: `${roundCount}回の繁殖が終わりました`,
+      desc: '体験を終了します。',
+      primaryLabel: '結果を見る',
+      onPrimary: showEnding
+    });
+  } else {
+    showEndModal({
+      title: `${roundCount}回の繁殖が終わりました`,
+      desc: '体験を終了します。',
+      primaryLabel: '体験を終了する',
+      onPrimary: showEnding,
+      secondaryLabel: `もう少し続ける（+${ROUNDS_EXTEND}回）`,
+      onSecondary: ()=>{
+        maxRounds = Math.min(ROUNDS_ABSOLUTE_MAX, maxRounds + ROUNDS_EXTEND);
+        advanceGeneration();
+      }
+    });
+  }
+}
+
+// 常時表示の「体験を終了する」ボタン
+document.getElementById('endBtn').addEventListener('click', ()=>{
+  showEndModal({
+    title: '体験を終了しますか？',
+    desc: '',
+    primaryLabel: '終了する',
+    onPrimary: showEnding,
+    secondaryLabel: '続ける',
+    onSecondary: ()=>{}
+  });
+});
+
+/* ---------- 最終画面（記録簿）----------
+   総収益を大きく見せたうえで、関わった犬すべての行方を
+   同じ淡々としたトーンで並べる。
+------------------------------------------------------------ */
+function statusOf(d){
+  const o = outcomes[d.id];
+  if(o && o.status==='sold')    return {key:'sold',    label: `販売済み ${formatYen(o.amount)}`};
+  if(o && o.status==='adopted') return {key:'adopted', label: '里親'};
+  if(d.sex==='F' && d.breedingCount >= FEMALE_HARD_LIMIT) return {key:'retired', label:'引退'};
+  return {key:'active', label:'現役'};
+}
+
+function showEnding(){
+  const rows = allDogs.map(d=>({d, st: statusOf(d)}));
+  const count = k => rows.filter(r=>r.st.key===k).length;
+
+  document.getElementById('endSub').textContent = `${roundCount}回の繁殖の成果`;
+  document.getElementById('endRevenue').textContent = formatYen(totalRevenue);
+  document.getElementById('endCounts').innerHTML = `
+    <div>関わった犬<br><b>${rows.length}匹</b></div>
+    <div>現役<br><b>${count('active')}匹</b></div>
+    <div>販売済み<br><b>${count('sold')}匹</b></div>
+    <div>引退<br><b>${count('retired')}匹</b></div>
+    <div>里親<br><b>${count('adopted')}匹</b></div>
+  `;
+  document.getElementById('ledgerList').innerHTML = rows.map(({d, st})=>`
+    <div class="ledger-row">
+      <div class="ledger-icon">${dogSVG(d)}</div>
+      <div class="ledger-name">${d.name}（${d.breed}）<span>${d.sex==='M'?'♂':'♀'}・${d.round ? d.round+'回目の繁殖' : '初期'}</span></div>
+      <div class="ledger-tag ${st.key}">${st.label}</div>
+    </div>
+  `).join('');
+  showScreen('screen-ending');
+}
+document.getElementById('restartBtn').addEventListener('click', ()=> location.reload());
 
 /* ---------- 初期化 ---------- */
 renderHeader();
