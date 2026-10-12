@@ -19,6 +19,26 @@ let dogs = [
   {id:'H', name:'ソラ', breed:'ミックス（チワックス）', sex:'M', color:'#B5875A', earType:'pointy', furLength:'short', size:0.6, breedingCount:0},
 ];
 
+/* ---------- 収益システム ----------
+   売り方によって受け取れる金額が変わる。
+   ・ペットショップ：需要に関係なく一律で評価額の80%（手数料20%）
+   ・自分で売る：需要が高い犬ほど満額に近く、低い犬は買い手がつきにくく安くなる
+   → 「人気の犬は自分で売った方が得、人気のない犬はペットショップに任せた方が得」
+     という判断を毎回プレイヤーにさせる。
+   ・引退した母犬：自分で売れば評価額の50%が収益、里親に出す場合は無償
+------------------------------------------------------------ */
+const SHOP_RATE = 0.8;
+const RETIRED_SELL_RATE = 0.5;
+let totalRevenue = 0;
+
+function roundYen(n){ return Math.round(n/500)*500; }
+function selfSellRate(popularity){
+  if(popularity >= 4) return 1.0;
+  if(popularity === 3) return 0.85;
+  return 0.6;
+}
+function formatYen(n){ return '¥' + n.toLocaleString(); }
+
 let genCount = 1;
 let childCounter = 1;
 let selTab = 'M';
@@ -103,6 +123,7 @@ function idealAsDog(ideal){
 
 function renderHeader(){
   document.getElementById('genBadge').textContent = `世代 ${genCount} / 5`;
+  document.getElementById('revenueBadge').textContent = `総収益 ${formatYen(totalRevenue)}`;
   document.getElementById('trendIconMini').innerHTML = dogSVG(idealAsDog(currentIdeal));
   document.getElementById('trendText').innerHTML = `今季の理想像：<b>${describeIdeal(currentIdeal)}</b>`;
 }
@@ -249,10 +270,21 @@ function renderResultScreen(){
     <div>売値：¥${ev.price.toLocaleString()}</div>
     <div class="demand">需要 ${starString(ev.popularity)}</div>
   `;
+  // 売り方ごとの受取額を計算してボタンに表示する
+  lastOffers = {
+    shop: roundYen(ev.price * SHOP_RATE),
+    self: roundYen(ev.price * selfSellRate(ev.popularity))
+  };
+  document.getElementById('shopBtn').textContent = `ペットショップへ売る（${formatYen(lastOffers.shop)}）`;
+  document.getElementById('selfSellBtn').textContent = `自分で売る（${formatYen(lastOffers.self)}）`;
 }
 
-function afterResultAction(keepChild){
+let lastOffers = {shop:0, self:0};
+
+function afterResultAction(keepChild, earned){
   if(keepChild) dogs.push(lastChild);
+  totalRevenue += (earned || 0);
+  renderHeader();
   if(retirePending){
     renderRetireScreen();
     showScreen('screen-retire');
@@ -260,24 +292,30 @@ function afterResultAction(keepChild){
     advanceGeneration();
   }
 }
-document.getElementById('keepBtn').addEventListener('click', ()=> afterResultAction(true));
-document.getElementById('shopBtn').addEventListener('click', ()=> afterResultAction(false));
-document.getElementById('selfSellBtn').addEventListener('click', ()=> afterResultAction(false));
+document.getElementById('keepBtn').addEventListener('click', ()=> afterResultAction(true, 0));
+document.getElementById('shopBtn').addEventListener('click', ()=> afterResultAction(false, lastOffers.shop));
+document.getElementById('selfSellBtn').addEventListener('click', ()=> afterResultAction(false, lastOffers.self));
 
 /* ---------- RETIRE 画面 ---------- */
 function renderRetireScreen(){
   const f = retirePending;
   document.getElementById('retireIcon').innerHTML = dogSVG(f);
   document.getElementById('retireLabel').textContent = `♀ ${f.name}（${f.breed}） ${BASE_AGE+f.breedingCount}歳`;
+  retireSellAmount = roundYen(computeEvaluation(f, currentIdeal).price * RETIRED_SELL_RATE);
+  document.getElementById('retireAdoptBtn').textContent = '里親に出す（無償）';
+  document.getElementById('retireSellBtn').textContent = `自分で売る（${formatYen(retireSellAmount)}）`;
 }
-function finishRetire(remove){
+let retireSellAmount = 0;
+
+function finishRetire(remove, earned){
   if(remove){ dogs = dogs.filter(d=>d.id!==retirePending.id); }
+  totalRevenue += (earned || 0);
   retirePending = null;
-  advanceGeneration();
+  advanceGeneration(); // 内部でヘッダー（総収益）も更新される
 }
-document.getElementById('retireKeepBtn').addEventListener('click', ()=> finishRetire(false));
-document.getElementById('retireAdoptBtn').addEventListener('click', ()=> finishRetire(true));
-document.getElementById('retireSellBtn').addEventListener('click', ()=> finishRetire(true));
+document.getElementById('retireKeepBtn').addEventListener('click', ()=> finishRetire(false, 0));
+document.getElementById('retireAdoptBtn').addEventListener('click', ()=> finishRetire(true, 0));
+document.getElementById('retireSellBtn').addEventListener('click', ()=> finishRetire(true, retireSellAmount));
 
 /* ---------- 世代を進める ---------- */
 function advanceGeneration(){
