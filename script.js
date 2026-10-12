@@ -8,15 +8,33 @@ const FEMALE_BREEDING_LIMIT = 3; // ここで引退イベント（3択）が発�
 const FEMALE_HARD_LIMIT = 4;     // ここに達すると強制的に選択不可になる
 const BASE_AGE = 2; // 繁殖回数0のときの推定年齢
 
+/* 初期の繁殖犬：15頭（オス8・メス7）、すべて純血種。
+   現実のブリーダーが飼育できる頭数（1人15頭まで）に合わせている。
+   7犬種すべてにオスとメスが1匹ずつ揃っているので、同じ犬種同士を
+   選べば純血種が生まれる。（トイプードルのみオスが2匹） */
 let dogs = [
-  {id:'A', name:'ハル', breed:'トイプードル', sex:'F', color:'#D9B370', earType:'floppy', furLength:'long',  size:0.8, breedingCount:0},
-  {id:'B', name:'マル', breed:'トイプードル', sex:'M', color:'#C9A15E', earType:'floppy', furLength:'long',  size:0.75,breedingCount:0},
-  {id:'C', name:'コウ', breed:'チワワ',       sex:'M', color:'#C97B4A', earType:'pointy', furLength:'short', size:0.5, breedingCount:0},
-  {id:'D', name:'ノア', breed:'ミックス（マルプー）', sex:'F', color:'#EDEBE3', earType:'floppy', furLength:'long', size:0.7, breedingCount:0},
-  {id:'E', name:'レン', breed:'ダックスフンド', sex:'M', color:'#8B5A2B', earType:'floppy', furLength:'short', size:0.9, breedingCount:0},
-  {id:'F', name:'ミト', breed:'柴犬', sex:'F', color:'#C97B4A', earType:'pointy', furLength:'short', size:1.0, breedingCount:0},
-  {id:'G', name:'アオ', breed:'柴犬', sex:'M', color:'#B5713C', earType:'pointy', furLength:'short', size:1.05,breedingCount:0},
-  {id:'H', name:'ソラ', breed:'ミックス（チワックス）', sex:'M', color:'#B5875A', earType:'pointy', furLength:'short', size:0.6, breedingCount:0},
+  // トイプードル
+  {id:'A', name:'ハル', breed:'トイプードル', sex:'F', color:'#D9B370', earType:'floppy', furLength:'long',  size:0.70, breedingCount:0},
+  {id:'B', name:'マル', breed:'トイプードル', sex:'M', color:'#C9A15E', earType:'floppy', furLength:'long',  size:0.72, breedingCount:0},
+  {id:'C', name:'リク', breed:'トイプードル', sex:'M', color:'#8B5A2B', earType:'floppy', furLength:'long',  size:0.68, breedingCount:0},
+  // チワワ
+  {id:'D', name:'ココ', breed:'チワワ', sex:'F', color:'#E2C08A', earType:'pointy', furLength:'short', size:0.50, breedingCount:0},
+  {id:'E', name:'コウ', breed:'チワワ', sex:'M', color:'#C99B5F', earType:'pointy', furLength:'short', size:0.52, breedingCount:0},
+  // 柴犬
+  {id:'F', name:'ミト', breed:'柴犬', sex:'F', color:'#C97B4A', earType:'pointy', furLength:'short', size:1.00, breedingCount:0},
+  {id:'G', name:'アオ', breed:'柴犬', sex:'M', color:'#B5713C', earType:'pointy', furLength:'short', size:1.05, breedingCount:0},
+  // ダックスフンド
+  {id:'H', name:'ナナ', breed:'ダックスフンド', sex:'F', color:'#A8552A', earType:'floppy', furLength:'short', size:0.80, breedingCount:0},
+  {id:'I', name:'レン', breed:'ダックスフンド', sex:'M', color:'#8B5A2B', earType:'floppy', furLength:'short', size:0.84, breedingCount:0},
+  // ビーグル
+  {id:'J', name:'モモ', breed:'ビーグル', sex:'F', color:'#B5834A', earType:'floppy', furLength:'short', size:0.90, breedingCount:0},
+  {id:'K', name:'タロ', breed:'ビーグル', sex:'M', color:'#A87642', earType:'floppy', furLength:'short', size:0.94, breedingCount:0},
+  // ポメラニアン
+  {id:'L', name:'ユキ', breed:'ポメラニアン', sex:'F', color:'#EDE4CF', earType:'pointy', furLength:'long',  size:0.55, breedingCount:0},
+  {id:'M', name:'ソラ', breed:'ポメラニアン', sex:'M', color:'#D9A066', earType:'pointy', furLength:'long',  size:0.58, breedingCount:0},
+  // ラブラドール
+  {id:'N', name:'ノア', breed:'ラブラドール', sex:'F', color:'#E3C48A', earType:'floppy', furLength:'short', size:1.08, breedingCount:0},
+  {id:'O', name:'ハチ', breed:'ラブラドール', sex:'M', color:'#3A3532', earType:'floppy', furLength:'short', size:1.10, breedingCount:0},
 ];
 
 /* ---------- 収益システム ----------
