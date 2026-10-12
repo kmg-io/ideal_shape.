@@ -118,6 +118,11 @@ header.masthead .trend-mini .icon-box svg{ width:100%; height:100%; }
 .modal-btns{ display:flex; flex-direction:column; gap:10px; align-items:center; }
 .modal-card button.secondary{ background:transparent; color:var(--forest); border:1px solid var(--forest); }
 
+/* 最終画面ではヘッダーの理想像・総収益・繁殖回数を隠す（タイトルのみ残す） */
+body.ending .trend-mini,
+body.ending .revenue,
+body.ending .gen-badge{ display:none; }
+
 /* ---- ENDING screen（記録簿）---- */
 .end-summary{ text-align:center; border-bottom:2px solid var(--forest); padding-bottom:14px; flex-shrink:0; }
 .end-sub{ font-size:0.75rem; color:var(--ink-soft); letter-spacing:0.05em; }

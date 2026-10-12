@@ -67,9 +67,25 @@ let currentIdeal = { color:[139,90,43], earType:'floppy', furLength:'long', size
 let previousIdeal = null;
 
 function cloneIdeal(i){ return {color:[...i.color], earType:i.earType, furLength:i.furLength, size:i.size}; }
+/* 流行の毛色は、実際の犬にいる自然な毛色の中だけで移り変わる。
+   （以前は赤・緑・青を別々にランダムに動かしていたため、
+    世代が進むとビビットなピンクなど不自然な色に偏っていた） */
+const NATURAL_COATS = [
+  [237,235,227], // ホワイト
+  [233,215,176], // クリーム
+  [217,179,112], // アプリコット
+  [201,155, 95], // フォーン
+  [201,123, 74], // レッド
+  [139, 90, 43], // ブラウン
+  [ 90, 60, 35], // ダークブラウン
+  [150,148,142], // グレー
+  [ 50, 45, 42]  // ブラック
+];
 function nextIdeal(prev){
   const next = cloneIdeal(prev);
-  next.color = prev.color.map(c => Math.max(0, Math.min(255, c + (Math.random()-0.5)*80)));
+  // 前の色から、自然な毛色のどれかへ向かって半分ほど寄せる
+  const target = NATURAL_COATS[Math.floor(Math.random()*NATURAL_COATS.length)];
+  next.color = prev.color.map((c,i)=> c + (target[i]-c)*0.5);
   if(Math.random() < 0.3) next.earType = prev.earType==='floppy' ? 'pointy':'floppy';
   if(Math.random() < 0.3) next.furLength = prev.furLength==='short' ? 'long':'short';
   next.size = Math.max(0.4, Math.min(1.1, prev.size + (Math.random()-0.5)*0.3));
@@ -132,6 +148,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   // 「売る／残す」の判断が途中の画面では終了ボタンを押せない。最終画面では非表示。
+  document.body.classList.toggle('ending', id==='screen-ending'); // 最終画面ではヘッダー表示を隠す
   const endBtn = document.getElementById('endBtn');
   endBtn.disabled = (id==='screen-result' || id==='screen-retire');
   endBtn.style.display = (id==='screen-ending') ? 'none' : '';
@@ -267,7 +284,12 @@ function breed(parentA, parentB){
   const rand = Math.random;
   const t = rand();
   let colorRgb = mix(hexToRgb(parentA.color), hexToRgb(parentB.color), t);
-  if(rand()<0.1) colorRgb = colorRgb.map(c=>c+(rand()-0.5)*90);
+  if(rand()<0.1){
+    // 突然変異は明るさだけを変える（色相は変えない）。
+    // 以前は赤・緑・青を別々に動かしていたため、不自然な色の子犬が生まれていた
+    const factor = 0.75 + rand()*0.5; // 0.75〜1.25倍（比率が保たれるので色相は変わらない）
+    colorRgb = colorRgb.map(c=>Math.min(255, c*factor));
+  }
   const color = rgbToHex(colorRgb);
   let earType = rand()<0.5 ? parentA.earType : parentB.earType;
   if(rand()<0.1) earType = earType==='floppy'?'pointy':'floppy';
