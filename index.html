@@ -25,8 +25,41 @@
 
 <div class="stage">
 
+  <!-- TITLE SCREEN（OP 1枚目） -->
+  <div class="screen active op-screen" id="screen-title">
+    <h1 class="op-title">理想の形</h1>
+    <div class="op-sub">ブリーダーシミュレーション</div>
+    <div class="op-dogs" id="opDogs"></div>
+    <button class="op-btn" id="titleStartBtn">はじめる</button>
+    <a class="about-link" id="aboutLink" href="#" hidden>作品について</a>
+  </div>
+
+  <!-- ABOUT SCREEN（作品について：キャプション＋作者の意図。表示案A/B/Cで共通） -->
+  <div class="screen op-screen" id="screen-about">
+    <div class="about-box">
+      <div class="about-title">『理想の形』</div>
+      <div class="about-cap">ブラウザで体験する、犬の繁殖シミュレーション<br>Webシミュレーション ／ 2026</div>
+      <div class="about-text" id="aboutText"></div>
+      <button class="op-btn" id="aboutNextBtn">次へ</button>
+    </div>
+  </div>
+
+  <!-- INTRO SCREEN（OP 2枚目：説明） -->
+  <div class="screen op-screen" id="screen-intro">
+    <div class="intro-head">あなたはブリーダーです</div>
+    <ul class="intro-list">
+      <li>市場が求める「理想の犬」は、季節ごとに移り変わります。</li>
+      <li>オスとメスを1匹ずつ選んで、繁殖させます。</li>
+      <li>生まれた子犬は、繁殖犬として残すか、売るかを決めます。</li>
+      <li>売ると、収益になります。</li>
+      <li>繁殖は5回まで。続ければ、最大10回まで繁殖できます。</li>
+      <li>いつでも、右上のボタンで体験を終えられます。</li>
+    </ul>
+    <button class="op-btn" id="introStartBtn">はじめる</button>
+  </div>
+
   <!-- SELECT SCREEN -->
-  <div class="screen active" id="screen-select">
+  <div class="screen" id="screen-select">
     <div class="tabs">
       <div class="tab-btn active" id="tabM" data-sex="M">♂ オス</div>
       <div class="tab-btn" id="tabF" data-sex="F">♀ メス</div>
@@ -101,7 +134,7 @@
       <div class="end-counts" id="endCounts"></div>
     </div>
     <div class="ledger-list" id="ledgerList"></div>
-    <div class="end-footer"><button id="restartBtn">最初からやり直す</button></div>
+    <div class="end-footer"><button id="aboutAfterBtn" hidden>作品について</button> <button id="restartBtn">最初からやり直す</button></div>
   </div>
 
 </div>
@@ -120,11 +153,16 @@
 <div class="modal-overlay" id="idealModal">
   <div class="modal-card">
     <div class="modal-title">今季、市場が求めている理想像</div>
-    <div class="icon-box" id="idealModalIcon"></div>
+    <div class="scene">
+      <div class="person" id="idealPerson"></div>
+      <div class="bubble"><div class="icon-box" id="idealModalIcon"></div></div>
+    </div>
     <div class="modal-desc" id="idealModalDesc"></div>
     <button id="idealModalOk">OK</button>
   </div>
 </div>
+
+<div class="ver-label" id="verLabel" hidden></div>
 
 <script src="script.js"></script>
 </body>

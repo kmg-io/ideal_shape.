@@ -144,3 +144,36 @@ body.ending .gen-badge{ display:none; }
 .end-footer button{ font-family:'IBM Plex Sans JP', sans-serif; font-size:0.8rem; background:transparent; border:1px solid var(--forest); color:var(--forest); padding:8px 18px; cursor:pointer; }
 
 .warning-msg{ font-size:0.76rem; color:var(--ribbon); min-height:1.1em; margin-bottom:8px; }
+
+/* ---- OP画面（タイトル／説明） ---- */
+body.op header.masthead{ display:none; }
+.op-screen{ align-items:center; justify-content:center; text-align:center; }
+.op-title{ font-family:'Fraunces', serif; font-weight:600; font-size:3.6rem; margin:0; letter-spacing:0.06em; }
+.op-sub{ font-size:0.9rem; color:var(--ink-soft); margin-top:6px; letter-spacing:0.12em; }
+.op-dogs{ display:flex; gap:6px; justify-content:center; margin:34px 0 38px; }
+.op-dogs .op-dog{ width:74px; height:62px; }
+.op-dogs .op-dog svg{ width:100%; height:100%; }
+.op-btn{ font-family:'Fraunces', serif; font-size:1.05rem; background:var(--forest); color:#F3EFE4; border:none; padding:13px 46px; cursor:pointer; letter-spacing:0.05em; }
+.intro-head{ font-family:'Fraunces', serif; font-size:1.5rem; margin-bottom:22px; }
+.intro-list{ text-align:left; max-width:520px; margin:0 0 30px; padding-left:1.2em; font-size:0.92rem; line-height:2; }
+
+/* ---- 理想像モーダル：人＋吹き出し ---- */
+#idealModal .modal-card{ max-width:430px; }
+.scene{ display:flex; align-items:flex-end; justify-content:center; gap:20px; margin-bottom:16px; }
+.person{ width:92px; flex-shrink:0; }
+.person svg{ width:100%; display:block; }
+.bubble{ position:relative; background:#FBF9F2; border:1.5px solid var(--forest); border-radius:20px; padding:10px 12px; margin-bottom:34px; }
+.bubble::before{ content:""; position:absolute; left:-14px; bottom:18px; border:8px solid transparent; border-right:12px solid var(--forest); border-left:0; }
+.bubble::after{ content:""; position:absolute; left:-11px; bottom:19.5px; border:7px solid transparent; border-right:11px solid #FBF9F2; border-left:0; }
+.modal-card .bubble .icon-box{ width:150px; height:126px; margin:0; }
+
+/* ---- 作品について（キャプション／作者の意図）---- */
+.about-box{ max-width:580px; }
+.about-title{ font-family:'Fraunces', serif; font-size:1.7rem; font-weight:600; }
+.about-cap{ font-size:0.78rem; color:var(--ink-soft); margin:8px 0 22px; line-height:1.8; }
+.about-text{ text-align:left; font-size:0.9rem; line-height:2; margin-bottom:26px; border-top:1px solid var(--forest); padding-top:18px; }
+.about-text p{ margin:0 0 6px; }
+.about-link{ position:fixed; right:22px; bottom:18px; font-size:0.74rem; color:var(--ink-soft); text-decoration:underline; }
+.about-link:hover{ color:var(--forest); }
+.ver-label{ position:fixed; left:14px; bottom:10px; font-size:0.64rem; color:var(--ink-soft); background:var(--paper-card); border:1px dashed var(--line); padding:2px 8px; z-index:5; }
+.end-footer button + button{ margin-left:8px; }

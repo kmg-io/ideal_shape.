@@ -167,6 +167,7 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   // 「売る／残す」の判断が途中の画面では終了ボタンを押せない。最終画面では非表示。
   document.body.classList.toggle('ending', id==='screen-ending'); // 最終画面ではヘッダー表示を隠す
+  document.body.classList.toggle('op', id==='screen-title' || id==='screen-intro' || id==='screen-about'); // OP画面ではヘッダー全体を隠す
   const endBtn = document.getElementById('endBtn');
   endBtn.disabled = (id==='screen-result' || id==='screen-retire');
   endBtn.style.display = (id==='screen-ending') ? 'none' : '';
@@ -185,7 +186,37 @@ function renderHeader(){
 }
 
 /* ---------- 理想像モーダル ---------- */
+/* ---------- 社会の需要を伝える「人」（仮の簡易イラスト）----------
+   季節ごとに違う人が理想の犬を吹き出しで語る。毎回ランダムで別の人になる
+   ことで、「特定の誰か」ではなく「社会」の声として見せる。 */
+const PERSON_LOOKS = [
+  {skin:'#F1CFA8', hair:'#2B2621', shirt:'#7A2E2E', style:'short'},
+  {skin:'#E8BE96', hair:'#6B4423', shirt:'#3B4A3A', style:'long'},
+  {skin:'#F4D7B5', hair:'#A9822C', shirt:'#5A6B7A', style:'bun'},
+  {skin:'#D9A87C', hair:'#2B2621', shirt:'#A9822C', style:'long'},
+  {skin:'#F1CFA8', hair:'#8A8680', shirt:'#4A5A4A', style:'short'}
+];
+function personSVG(v){
+  let hairBack = '', hairFront = `<path d="M26 50 Q26 24 50 24 Q74 24 74 50 Q66 37 50 37 Q34 37 26 50 Z" fill="${v.hair}"/>`;
+  if(v.style==='long'){
+    hairBack = `<rect x="24" y="40" width="52" height="44" rx="22" fill="${v.hair}"/>`;
+  } else if(v.style==='bun'){
+    hairFront += `<circle cx="50" cy="20" r="9" fill="${v.hair}"/>`;
+  }
+  return `<svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg">
+    ${hairBack}
+    <path d="M12 130 Q12 84 50 84 Q88 84 88 130 Z" fill="${v.shirt}"/>
+    <rect x="43" y="68" width="14" height="18" fill="${v.skin}"/>
+    <circle cx="50" cy="52" r="24" fill="${v.skin}"/>
+    ${hairFront}
+    <circle cx="41" cy="55" r="2.2" fill="#2B2621"/>
+    <circle cx="59" cy="55" r="2.2" fill="#2B2621"/>
+    <path d="M44 65 Q50 70 56 65" stroke="#2B2621" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
 function showIdealModal(){
+  document.getElementById('idealPerson').innerHTML = personSVG(PERSON_LOOKS[Math.floor(Math.random()*PERSON_LOOKS.length)]);
   document.getElementById('idealModalIcon').innerHTML = dogSVG(idealAsDog(currentIdeal));
   const earText = currentIdeal.earType==='floppy' ? '垂れ耳' : '立ち耳';
   const furText = currentIdeal.furLength==='long' ? '長毛' : '短毛';
@@ -498,8 +529,67 @@ function showEnding(){
 }
 document.getElementById('restartBtn').addEventListener('click', ()=> location.reload());
 
+/* ---------- OP（タイトル → 説明 → ゲーム開始）---------- */
+function renderTitleDogs(){
+  const picks = ['ハル','コウ','ミト','タロ','ユキ'].map(n=>dogs.find(d=>d.name===n)).filter(Boolean);
+  document.getElementById('opDogs').innerHTML = picks.map(d=>`<div class="op-dog">${dogSVG(d)}</div>`).join('');
+}
+/* ---------- 作品について（キャプション＋作者の意図）----------
+   教授への見せ方を比べるため、URLの末尾（#の後）で表示案を切り替える。
+     （なし）  … 作品について を表示しない（現在の形）
+     #before … A案：体験の前（タイトル → 作品について → 説明 → ゲーム）
+     #after  … B案：体験の後（最終画面に「作品について」ボタンを出す）
+     #link   … C案：タイトル画面の隅に「作品について」リンクを置く
+   ※ 下の文面は仮のもの。作者本人の言葉に差し替えること。 */
+const ABOUT_PARAGRAPHS = [
+  '「かわいい」「珍しい」という需要から、新しい犬種名を持つミックス犬が生まれていることに、違和感がありました。',
+  '調べるうちに、純血種もまた、人間が見た目や血統を選び続けてきた結果の姿だと気づきました。',
+  '犬の価値は、見た目・血統・人気・価格という、人間が決めた基準によって決められています。',
+  'この作品では、あなた自身がブリーダーとしてその基準に従い、犬を選び、価値をつけていきます。',
+  'その選択は、本当に犬にとっての理想だったのでしょうか。'
+];
+const VERSION_LABELS = {
+  before: '表示案A：体験の前に組み込む',
+  after:  '表示案B：体験の後に組み込む',
+  link:   '表示案C：タイトルの隅にリンク'
+};
+const aboutVersion = (()=>{ const v = location.hash.replace('#',''); return VERSION_LABELS[v] ? v : ''; })();
+window.addEventListener('hashchange', ()=> location.reload()); // 同じタブで案を切り替えたとき用
+
+function showAbout(nextLabel, nextAction){
+  document.getElementById('aboutText').innerHTML = ABOUT_PARAGRAPHS.map(t=>`<p>${t}</p>`).join('');
+  const btn = document.getElementById('aboutNextBtn');
+  btn.textContent = nextLabel;
+  btn.onclick = nextAction;
+  showScreen('screen-about');
+}
+
+document.getElementById('titleStartBtn').addEventListener('click', ()=>{
+  if(aboutVersion==='before') showAbout('次へ', ()=> showScreen('screen-intro'));
+  else showScreen('screen-intro');
+});
+document.getElementById('aboutLink').addEventListener('click', e=>{
+  e.preventDefault();
+  showAbout('戻る', ()=> showScreen('screen-title'));
+});
+document.getElementById('aboutAfterBtn').addEventListener('click', ()=>{
+  showAbout('最初に戻る', ()=> location.reload());
+});
+document.getElementById('introStartBtn').addEventListener('click', ()=>{
+  showScreen('screen-select');
+  showIdealModal(); // 選択画面に触る前に、まず今季の理想像を見せる
+});
+
 /* ---------- 初期化 ---------- */
 renderHeader();
 renderCandGrid();
 renderSlots();
-showIdealModal(); // 1世代目も、選択画面に触る前にまず理想像を見せる
+renderTitleDogs();
+showScreen('screen-title');
+if(aboutVersion){
+  const lab = document.getElementById('verLabel');
+  lab.textContent = VERSION_LABELS[aboutVersion];
+  lab.hidden = false;
+}
+document.getElementById('aboutLink').hidden = (aboutVersion !== 'link');
+document.getElementById('aboutAfterBtn').hidden = (aboutVersion !== 'after');
