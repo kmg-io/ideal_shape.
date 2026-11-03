@@ -593,3 +593,5 @@ if(aboutVersion){
 }
 document.getElementById('aboutLink').hidden = (aboutVersion !== 'link');
 document.getElementById('aboutAfterBtn').hidden = (aboutVersion !== 'after');
+// B案では、最終画面のボタンは「次へ」だけ（結果 → 作品について → 最初に戻る、と選ばずに進む）
+document.getElementById('restartBtn').hidden = (aboutVersion === 'after');

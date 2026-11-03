@@ -173,7 +173,7 @@ body.op header.masthead{ display:none; }
 .about-cap{ font-size:0.78rem; color:var(--ink-soft); margin:8px 0 22px; line-height:1.8; }
 .about-text{ text-align:left; font-size:0.9rem; line-height:2; margin-bottom:26px; border-top:1px solid var(--forest); padding-top:18px; }
 .about-text p{ margin:0 0 6px; }
-.about-link{ position:fixed; right:22px; bottom:18px; font-size:0.74rem; color:var(--ink-soft); text-decoration:underline; }
-.about-link:hover{ color:var(--forest); }
+.about-link{ position:fixed; right:22px; bottom:18px; font-size:1rem; color:var(--forest); text-decoration:none; background:var(--paper-card); border:1px solid var(--forest); padding:9px 20px; letter-spacing:0.04em; }
+.about-link:hover{ background:var(--forest); color:#F3EFE4; }
 .ver-label{ position:fixed; left:14px; bottom:10px; font-size:0.64rem; color:var(--ink-soft); background:var(--paper-card); border:1px dashed var(--line); padding:2px 8px; z-index:5; }
 .end-footer button + button{ margin-left:8px; }
