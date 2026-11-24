@@ -37,6 +37,25 @@ let dogs = [
   {id:'O', name:'ハチ', breed:'ラブラドール', sex:'M', color:'#3A3532', earType:'floppy', furLength:'short', size:1.10, breedingCount:0},
 ];
 
+/* ---------- 犬ごとの性格・年齢（選択画面の表示用）----------
+   性格は犬種ごとの一般的なイメージ（仮）。生まれた子犬は、両親から1つずつ受け継ぐ。
+   年齢：メスは「2歳＋繁殖回数」、オスは個体ごとの固定値（仮）。 */
+const BREED_TEMPERAMENT = {
+  'トイプードル':   ['賢い','人懐っこい'],
+  'チワワ':         ['勇敢','警戒心が強い'],
+  '柴犬':           ['忠実','頑固'],
+  'ダックスフンド': ['好奇心旺盛','活発'],
+  'ビーグル':       ['陽気','食いしん坊'],
+  'ポメラニアン':   ['元気','おしゃべり'],
+  'ラブラドール':   ['穏やか','人懐っこい']
+};
+const MALE_AGES = {B:3, C:2, E:4, G:3, I:5, K:4, M:2, O:3};
+dogs.forEach(d=>{
+  d.temperament = (BREED_TEMPERAMENT[d.breed] || []).slice();
+  if(d.sex==='M') d.age = MALE_AGES[d.id];
+});
+function ageOf(d){ return d.sex==='F' ? BASE_AGE + d.breedingCount : (d.age ?? BASE_AGE); }
+
 /* ---------- 収益システム ----------
    売り方によって受け取れる金額が変わる。
    ・ペットショップ：需要に関係なく一律で評価額の80%（手数料20%）
@@ -76,7 +95,6 @@ let allDogs = dogs.slice();
 let outcomes = {};
 
 let childCounter = 1;
-let selTab = 'M';
 let selectedMaleId = null;
 let selectedFemaleId = null;
 let lastChild = null, lastParents = null, retirePending = null;
@@ -132,41 +150,143 @@ function computeEvaluation(dog, ideal){
 }
 function starString(n){ return '★'.repeat(n) + '☆'.repeat(5-n); }
 
-function dogSVG(dog){
+/* ===== BALLOON DOG START ===================================================
+   犬の見た目は「バルーンドッグ」。風船のパーツ（胴・頭・口・耳・足・しっぽ）を
+   ねじってつないだ形で描く。ゲームのデータ（毛色・耳・毛の長さ・体格）は
+   これまでどおり使い、犬種の違いは「パーツの比率」だけで表す。
+   ※ 見た目だけの変更。評価・繁殖・収益などのロジックには触れていない。
+============================================================================ */
+const BALLOON_BASE = {bodyRx:40, bodyRy:17, legH:28, legW:9, headRx:19, headRy:16, muzzle:14, earScale:1, tail:'up', tailLen:1};
+
+/* 犬種ごとの比率（どれも同じ大きさを基準にした比率。全体の大小は dog.size が担当）
+   bodyRx/bodyRy:胴の長さ/太さ  legH/legW:足の長さ/太さ  headRx/headRy:頭  muzzle:口の長さ
+   earScale:耳の大きさ  tail:'up'（立つ）|'curl'（くるん）  tailLen:しっぽの長さ        */
+const BREED_SHAPES = {
+  'トイプードル':   {bodyRx:36, bodyRy:15, legH:30, legW:8,  headRx:18, headRy:15, muzzle:15, earScale:1.25, tail:'up',   tailLen:1},
+  'チワワ':         {bodyRx:30, bodyRy:13, legH:24, legW:7,  headRx:25, headRy:22, muzzle:11, earScale:1.4,  tail:'up',   tailLen:0.9},
+  '柴犬':           {bodyRx:38, bodyRy:17, legH:28, legW:9,  headRx:19, headRy:16, muzzle:13, earScale:0.85, tail:'curl', tailLen:1},
+  'ダックスフンド': {bodyRx:58, bodyRy:14, legH:13, legW:9,  headRx:17, headRy:14, muzzle:17, earScale:1.1,  tail:'up',   tailLen:1},
+  'ビーグル':       {bodyRx:42, bodyRy:17, legH:28, legW:9,  headRx:19, headRy:16, muzzle:15, earScale:1.2,  tail:'up',   tailLen:1},
+  'ポメラニアン':   {bodyRx:32, bodyRy:16, legH:21, legW:8,  headRx:22, headRy:19, muzzle:9,  earScale:0.7,  tail:'curl', tailLen:1.2},
+  'ラブラドール':   {bodyRx:46, bodyRy:20, legH:34, legW:11, headRx:21, headRy:17, muzzle:18, earScale:1.0,  tail:'up',   tailLen:1.3},
+  // ↓ まだゲームには登場しない犬種（追加するときは、犬のデータの breed にこの名前を書くだけ）
+  'コーギー':             {bodyRx:50, bodyRy:16, legH:13, legW:9,  headRx:19, headRy:16, muzzle:14, earScale:1.6, tail:'up', tailLen:0.5},
+  'フレンチブルドッグ':   {bodyRx:30, bodyRy:20, legH:20, legW:11, headRx:23, headRy:20, muzzle:8,  earScale:1.5, tail:'up', tailLen:0.5}
+};
+
+const BALLOON_FIT = 1.25;  // 枠いっぱいに見えるようにする全体の拡大率（比率には影響しない）
+function shapeOf(dog){ return dog.shape || BREED_SHAPES[dog.breed] || BALLOON_BASE; }
+
+// ミックス：両親の比率をまぜる（毎回少しだけばらつく）
+function blendShape(a, b){
+  const out = {};
+  Object.keys(BALLOON_BASE).forEach(k=>{
+    if(typeof BALLOON_BASE[k] === 'number'){
+      const w = 0.35 + Math.random()*0.3;
+      out[k] = (a[k]*w + b[k]*(1-w)) * (0.96 + Math.random()*0.08);
+    } else {
+      out[k] = Math.random()<0.5 ? a[k] : b[k];
+    }
+  });
+  return out;
+}
+
+function balloonDogSVG(dog){
+  const p = shapeOf(dog);
   const s = dog.size;
-  const bodyRx=46*s, bodyRy=32*s, headR=26*s;
-  const cx=100, bodyCy=132, headCx=148, headCy=92;
   const color = dog.color;
-  const darker = rgbToHex(hexToRgb(color).map(c=>c*0.78));
-  let ear = dog.earType==='floppy'
-    ? `<ellipse cx="${headCx+14}" cy="${headCy+18}" rx="${11*s}" ry="${19*s}" fill="${darker}" transform="rotate(18 ${headCx+14} ${headCy+18})"/>`
-    : `<path d="M ${headCx+2} ${headCy-20} L ${headCx+14} ${headCy-40} L ${headCx+20} ${headCy-16} Z" fill="${darker}"/>`;
-  let furBumps = '';
-  if(dog.furLength==='long'){
-    furBumps = [[60,110],[70,95],[85,86],[100,84],[115,88]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="9" fill="${color}"/>`).join('');
+  const rgb = hexToRgb(color);
+  const edge = rgbToHex(rgb.map(c=>c*0.66));   // 風船のふち
+  const back = rgbToHex(rgb.map(c=>c*0.84));   // 奥側のパーツ（少し暗く）
+  const G = 172, cx = 98;                       // 地面の高さ／胴の中心
+  const cy = G - p.legH - p.bodyRy + 4;         // 胴の中心の高さ
+
+  // 風船ひとつぶん：本体＋つや（白いハイライト）
+  const bal = (x,y,rx,ry,rot=0,fill=color) =>
+    `<g transform="rotate(${rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})">`+
+    `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${fill}" stroke="${edge}" stroke-width="1.6"/>`+
+    `<ellipse cx="${(x-rx*0.32).toFixed(1)}" cy="${(y-ry*0.42).toFixed(1)}" rx="${Math.max(1.5,rx*0.28).toFixed(1)}" ry="${Math.max(1.2,ry*0.17).toFixed(1)}" fill="#fff" opacity="0.5"/></g>`;
+  // ねじり目（風船をひねった所）
+  const knot = (x,y,rot=0) =>
+    `<g transform="rotate(${rot} ${x.toFixed(1)} ${y.toFixed(1)})"><ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="3.6" ry="1.7" fill="${edge}"/>`+
+    `<ellipse cx="${(x-1).toFixed(1)}" cy="${(y-0.4).toFixed(1)}" rx="1.3" ry="0.5" fill="#fff" opacity="0.4"/></g>`;
+
+  const es = p.earScale;
+  const legRx = p.legW/2, legRy = (p.legH+12)/2, legCy = G - legRy;
+  const hindX = cx - p.bodyRx*0.6, frontX = cx + p.bodyRx*0.6;
+  const hx = cx + p.bodyRx*0.92 + p.headRx*0.35;
+  const hy = cy - p.bodyRy*0.95 - p.headRy*0.55;
+  const tbx = cx - p.bodyRx + 2, tby = cy - p.bodyRy*0.35;   // しっぽの付け根
+  const long = dog.furLength === 'long';
+
+  const parts = [];
+  parts.push(`<ellipse cx="${cx+10}" cy="${G}" rx="${p.bodyRx+34}" ry="7" fill="#2B2621" opacity="0.09"/>`);
+  // 奥の足
+  parts.push(bal(hindX+8,  legCy, legRx, legRy, 0, back));
+  parts.push(bal(frontX+8, legCy, legRx, legRy, 0, back));
+  // しっぽ
+  let tipX, tipY;
+  if(p.tail === 'curl'){
+    const r = 7*p.tailLen, tx = tbx-6, ty = tby-12*p.tailLen;
+    parts.push(`<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="${r.toFixed(1)}" fill="none" stroke="${edge}" stroke-width="9"/>`);
+    parts.push(`<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="${r.toFixed(1)}" fill="none" stroke="${color}" stroke-width="5.6"/>`);
+    tipX = tx; tipY = ty - r;
+  } else {
+    const len = 11*p.tailLen;
+    parts.push(bal(tbx-6, tby-len*0.8, 4.6, len, -26));
+    tipX = tbx-6-len*0.42; tipY = tby-len*1.7;
+  }
+  parts.push(knot(tbx, tby, 40));
+  // 体
+  parts.push(bal(cx, cy, p.bodyRx, p.bodyRy, 0));
+  // 手前の足（上にねじり目）
+  parts.push(bal(hindX,  legCy, legRx, legRy, 0));
+  parts.push(bal(frontX, legCy, legRx, legRy, 0));
+  parts.push(knot(hindX,  G - p.legH + 2));
+  parts.push(knot(frontX, G - p.legH + 2));
+  // 首 → 奥の耳 → 頭 → 口 → 手前の耳
+  parts.push(bal(cx + p.bodyRx*0.86, cy - p.bodyRy*0.8, 9, p.headRy*0.85, 28));
+  if(dog.earType === 'floppy'){
+    parts.push(bal(hx+4, hy + p.headRy*0.35, 5.8*es, 11.5*es, 10, back));
+  } else {
+    parts.push(bal(hx + p.headRx*0.1, hy - p.headRy*1.0, 4.8*es, 11.5*es, 10, back));
+  }
+  parts.push(bal(hx, hy, p.headRx, p.headRy, 0));
+  const mrx = p.muzzle/2 + 2, mry = p.headRy*0.44, mx = hx + p.headRx*0.78, my = hy + p.headRy*0.32;
+  parts.push(bal(mx, my, mrx, mry, 0));
+  parts.push(`<circle cx="${(mx+mrx*0.82).toFixed(1)}" cy="${(my-mry*0.25).toFixed(1)}" r="2.3" fill="#2B2621"/>`);
+  parts.push(`<circle cx="${(hx+p.headRx*0.3).toFixed(1)}" cy="${(hy-p.headRy*0.18).toFixed(1)}" r="2.1" fill="#2B2621"/>`);
+  if(dog.earType === 'floppy'){
+    parts.push(bal(hx - p.headRx*0.3, hy + p.headRy*0.5, 6.6*es, 13*es, 12));
+    parts.push(knot(hx - p.headRx*0.3, hy - p.headRy*0.1, 20));
+  } else {
+    parts.push(bal(hx - p.headRx*0.3, hy - p.headRy*0.98, 5.4*es, 12.5*es, -8));
+    parts.push(knot(hx - p.headRx*0.3, hy - p.headRy*0.62, 0));
+  }
+  // 長毛：ふわふわの小さな風船（頭のてっぺん・足先・しっぽの先）
+  if(long){
+    const pf = (x,y,r)=> bal(x,y,r,r,0);
+    parts.push(pf(hx-1,  hy-p.headRy-4, 6.8), pf(hx+8, hy-p.headRy-1, 5.2), pf(hx-10, hy-p.headRy-1, 5.2));
+    const r = p.legW*0.8+1.5;
+    [hindX, frontX].forEach(x=> parts.push(pf(x, G-r*0.7, r)));
+    parts.push(pf(tipX, tipY, 6.5), pf(tipX-6, tipY+4, 4.8));
   }
   return `<svg viewBox="0 0 220 190" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="${cx}" cy="170" rx="70" ry="8" fill="#2B2621" opacity="0.08"/>
-    <path d="M ${cx-10} 150 Q ${cx-40} 120 ${cx-30} 95" stroke="${color}" stroke-width="9" fill="none" stroke-linecap="round"/>
-    <rect x="${cx-38}" y="150" width="9" height="22" rx="4" fill="${darker}"/>
-    <rect x="${cx-14}" y="152" width="9" height="20" rx="4" fill="${darker}"/>
-    <rect x="${cx+22}" y="150" width="9" height="22" rx="4" fill="${darker}"/>
-    <rect x="${cx+44}" y="152" width="9" height="20" rx="4" fill="${darker}"/>
-    <ellipse cx="${cx}" cy="${bodyCy}" rx="${bodyRx}" ry="${bodyRy}" fill="${color}"/>
-    ${furBumps}${ear}
-    <circle cx="${headCx}" cy="${headCy}" r="${headR}" fill="${color}"/>
-    <ellipse cx="${headCx+22}" cy="${headCy+8}" rx="12" ry="9" fill="#F3EFE4"/>
-    <circle cx="${headCx+30}" cy="${headCy+8}" r="3" fill="#2B2621"/>
-    <circle cx="${headCx+6}" cy="${headCy-6}" r="3" fill="#2B2621"/>
+    <g transform="translate(110 ${G}) scale(${(s*BALLOON_FIT).toFixed(3)}) translate(-110 -${G})">${parts.join('')}</g>
   </svg>`;
 }
+/* ===== BALLOON DOG END ===================================================== */
+
+function dogSVG(dog){ return balloonDogSVG(dog); }
 
 /* ---------- 画面切り替え ---------- */
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   // 「売る／残す」の判断が途中の画面では終了ボタンを押せない。最終画面では非表示。
-  document.body.classList.toggle('ending', id==='screen-ending'); // 最終画面ではヘッダー表示を隠す
+  document.body.classList.toggle('ending', id==='screen-ending');
+  document.body.classList.toggle('sel', id==='screen-select'); // 選択画面ではヘッダーの小さい理想像を隠す
+  if(id==='screen-select') requestAnimationFrame(()=>layoutCarousel()); // 表示された後でないと幅が測れない // 最終画面ではヘッダー表示を隠す
   document.body.classList.toggle('op', id==='screen-title' || id==='screen-intro' || id==='screen-about'); // OP画面ではヘッダー全体を隠す
   const endBtn = document.getElementById('endBtn');
   endBtn.disabled = (id==='screen-result' || id==='screen-retire');
@@ -215,8 +335,11 @@ function personSVG(v){
   </svg>`;
 }
 
+let currentPersonLook = null;
+function pickPerson(){ currentPersonLook = PERSON_LOOKS[Math.floor(Math.random()*PERSON_LOOKS.length)]; }
+
 function showIdealModal(){
-  document.getElementById('idealPerson').innerHTML = personSVG(PERSON_LOOKS[Math.floor(Math.random()*PERSON_LOOKS.length)]);
+  document.getElementById('idealPerson').innerHTML = personSVG(currentPersonLook);
   document.getElementById('idealModalIcon').innerHTML = dogSVG(idealAsDog(currentIdeal));
   const earText = currentIdeal.earType==='floppy' ? '垂れ耳' : '立ち耳';
   const furText = currentIdeal.furLength==='long' ? '長毛' : '短毛';
@@ -232,57 +355,205 @@ document.getElementById('idealModalOk').addEventListener('click', ()=>{
   showScreen('screen-select');
 });
 
-/* ---------- SELECT 画面 ---------- */
+/* ---------- SELECT 画面（メイン画面）----------
+   左下の横一覧をスワイプして犬を決める → 左上に大きく情報が出る
+   「この犬を親にする」で右下の ♂/♀ の枠に入る。両方そろうと交配へ進める。
+------------------------------------------------------------ */
+const $ = id => document.getElementById(id);
+const CAR_CARD_W = 82, CAR_GAP = 12, CAR_STEP = CAR_CARD_W + CAR_GAP;
+let carFilter = 'all';   // 'all' | 'M' | 'F'   ← ♂♀を混ぜるか分けるかは、ここで切り替えて試せる
+let carIndex = 0;
+let carList = [];
+
+function isExhausted(d){ return d.sex==='F' && d.breedingCount >= FEMALE_HARD_LIMIT; }
+function isPicked(d){ return d.id===selectedMaleId || d.id===selectedFemaleId; }
+
 function showWarning(msg){
-  const el = document.getElementById('warningMsg');
+  const el = $('warningMsg');
   el.textContent = msg;
   clearTimeout(showWarning._t);
-  showWarning._t = setTimeout(()=>{ el.textContent=''; }, 2400);
+  showWarning._t = setTimeout(()=>{ el.textContent=''; }, 2600);
 }
 
+/* --- 右上：市場の流行（人＋吹き出し）--- */
+function renderTrendPanel(){
+  $('trendPerson').innerHTML = personSVG(currentPersonLook);
+  $('trendDog').innerHTML = dogSVG(idealAsDog(currentIdeal));
+  $('trendDesc').innerHTML = `<b>${describeIdeal(currentIdeal)}</b>`;
+}
+
+/* --- 右下：親犬の枠 --- */
 function renderSlots(){
-  const female = dogs.find(d=>d.id===selectedFemaleId);
+  const fill = (el, d, sex) => {
+    el.className = 'pslot' + (d ? ' filled' : '');
+    el.innerHTML = d
+      ? `<button class="x" data-x="${sex}" aria-label="選択を外す">×</button><div class="icon-box">${dogSVG(d)}</div><div class="pn">${d.name}</div><div class="pb">${d.breed}</div>`
+      : `<div class="pe">未選択</div>`;
+  };
   const male = dogs.find(d=>d.id===selectedMaleId);
-  const slotF = document.getElementById('slotF');
-  const slotM = document.getElementById('slotM');
-  slotF.className = 'slot' + (female?' filled':'');
-  slotF.innerHTML = female
-    ? `<div class="slot-label">♀ メス</div><div class="icon-box">${dogSVG(female)}</div><div class="sname">${female.name}</div>`
-    : `<div class="slot-label">♀ メス</div><div class="sname">未選択</div>`;
-  slotM.className = 'slot' + (male?' filled':'');
-  slotM.innerHTML = male
-    ? `<div class="slot-label">♂ オス</div><div class="icon-box">${dogSVG(male)}</div><div class="sname">${male.name}</div>`
-    : `<div class="slot-label">♂ オス</div><div class="sname">未選択</div>`;
-  document.getElementById('nextBtn').disabled = !(female && male);
+  const female = dogs.find(d=>d.id===selectedFemaleId);
+  fill($('slotM'), male, 'M');
+  fill($('slotF'), female, 'F');
+  $('nextBtn').disabled = !(male && female);
+}
+['M','F'].forEach(sex=>{
+  $(sex==='M'?'slotM':'slotF').addEventListener('click', e=>{
+    if(e.target.closest('.x')){ if(sex==='M') selectedMaleId=null; else selectedFemaleId=null; afterPickChange(); return; }
+    const id = sex==='M' ? selectedMaleId : selectedFemaleId;
+    if(id) focusDog(id);   // 枠をクリックすると、その犬を一覧の中央に呼び戻す
+  });
+});
+
+/* --- 左上：大きな犬の情報 --- */
+function renderBig(dir){
+  const d = carList[carIndex];
+  const info = $('bigInfo'), dogBox = $('bigDog'), btn = $('pickBtn');
+  if(!d){ info.innerHTML=''; dogBox.innerHTML=''; btn.hidden = true; return; }
+  btn.hidden = false;
+  const ev = computeEvaluation(d, currentIdeal);
+  const exh = isExhausted(d), picked = isPicked(d);
+  info.innerHTML = `
+    <div class="big-name">${d.name}<span class="sx ${d.sex}">${d.sex==='M'?'♂':'♀'}</span></div>
+    <div class="big-lines">
+      <div><span>犬種</span>${d.breed}</div>
+      <div><span>性格</span>${(d.temperament||[]).join('・') || '—'}</div>
+      <div><span>コート</span>${d.furLength==='long'?'長毛':'短毛'}</div>
+      <div><span>年齢</span>${ageOf(d)}歳</div>
+    </div>
+    <div class="big-sub">人気 <span class="stars">${starString(ev.popularity)}</span>　犬種標準 ${ev.standard}%${
+      d.sex==='F' ? `<br>${exh ? '生涯出産回数に達しています' : '繁殖 '+d.breedingCount+' / '+FEMALE_BREEDING_LIMIT}` : ''}</div>`;
+  dogBox.innerHTML = `<div class="bd-inner">${dogSVG(d)}</div>`;
+  btn.disabled = exh && !picked;
+  btn.classList.toggle('picked', picked);
+  btn.textContent = exh ? '繁殖できません' : picked ? '選択を外す' : 'この犬を親にする';
+  if(dir){ // 切り替わりの動き（スワイプの向きに合わせて滑り込む）
+    const cls = dir>0 ? 'swapL' : 'swapR';
+    [info, dogBox.firstElementChild].forEach(el=>{ el.classList.remove('swapL','swapR'); void el.offsetWidth; el.classList.add(cls); });
+  }
 }
 
-function renderCandGrid(){
-  const grid = document.getElementById('candGrid');
-  grid.innerHTML = '';
-  dogs.filter(d=>d.sex===selTab).forEach(dog=>{
-    const exhausted = dog.sex==='F' && dog.breedingCount >= FEMALE_HARD_LIMIT;
-    const isSel = dog.id===selectedMaleId || dog.id===selectedFemaleId;
-    const ev = computeEvaluation(dog, currentIdeal);
-    const card = document.createElement('div');
-    card.className = 'cand-card' + (isSel?' selected':'') + (exhausted?' exhausted':'');
-    card.innerHTML = `
-      <div class="icon-box">${dogSVG(dog)}</div>
-      <div class="cname">${dog.name}</div>
-      <div class="cbreed">${dog.breed}</div>
-      <div class="cstars">${starString(ev.popularity)}</div>
-      ${dog.sex==='F' ? `<div class="clim">${exhausted?'上限到達':'繁殖 '+dog.breedingCount+'/'+FEMALE_BREEDING_LIMIT+'（推定'+(BASE_AGE+dog.breedingCount)+'歳)'}</div>` : ''}
-    `;
-    card.addEventListener('click', ()=>{
-      if(exhausted){ showWarning(`${dog.name}は生涯出産回数の上限に達しており、選択できません。`); return; }
-      if(dog.sex==='M') selectedMaleId = dog.id; else selectedFemaleId = dog.id;
-      renderCandGrid(); renderSlots();
-    });
-    grid.appendChild(card);
+$('pickBtn').addEventListener('click', ()=>{
+  const d = carList[carIndex]; if(!d) return;
+  if(isPicked(d)){
+    if(d.sex==='M') selectedMaleId = null; else selectedFemaleId = null;
+  } else {
+    if(isExhausted(d)){ showWarning(`${d.name}は生涯出産回数の上限に達しており、選択できません。`); return; }
+    if(d.sex==='M') selectedMaleId = d.id; else selectedFemaleId = d.id;
+  }
+  afterPickChange();
+});
+function afterPickChange(){
+  renderSlots();
+  $('carTrack').querySelectorAll('.car-card').forEach((el,i)=> el.classList.toggle('sel', isPicked(carList[i])));
+  renderBig(0);
+}
+
+/* --- 左下：横スワイプの一覧 --- */
+function refreshCarList(keepId){
+  carList = dogs.filter(d=> carFilter==='all' || d.sex===carFilter);
+  const i = keepId ? carList.findIndex(d=>d.id===keepId) : -1;
+  carIndex = i>=0 ? i : Math.min(carIndex, Math.max(0, carList.length-1));
+}
+function renderCarousel(){
+  $('carTrack').innerHTML = carList.map((d,i)=>`
+    <div class="car-card${isPicked(d)?' sel':''}${isExhausted(d)?' exh':''}" data-i="${i}">
+      <span class="cs ${d.sex}">${d.sex==='M'?'♂':'♀'}</span>
+      <div class="icon-box">${dogSVG(d)}</div>
+      <div class="cn">${d.name}</div>
+    </div>`).join('');
+  layoutCarousel();
+}
+// 中央に来る犬ほど大きく・はっきり見せる。ドラッグ中は dragDx 分だけずらす。
+function layoutCarousel(dragDx=0){
+  const vp = $('carViewport'), track = $('carTrack');
+  const W = vp.clientWidth;
+  if(!W) return;
+  const base = W/2 - (carIndex*CAR_STEP + CAR_CARD_W/2) + dragDx;
+  track.style.transform = `translateX(${base}px)`;
+  track.querySelectorAll('.car-card').forEach((c,i)=>{
+    const dist = Math.abs(i*CAR_STEP + CAR_CARD_W/2 + base - W/2) / CAR_STEP;
+    c.style.transform = `scale(${(1.14 - 0.2*Math.min(dist,1.5)).toFixed(3)})`;
+    c.style.opacity = (1 - 0.28*Math.min(dist,2.2)).toFixed(3);
   });
 }
+function setIndex(i){
+  if(!carList.length) return;
+  i = Math.max(0, Math.min(carList.length-1, i));
+  const dir = i===carIndex ? 0 : (i>carIndex ? 1 : -1);
+  carIndex = i;
+  layoutCarousel();
+  if(dir) renderBig(dir);
+}
+function setFilter(f, keepId){
+  carFilter = f;
+  document.querySelectorAll('#carFilter .car-chip').forEach(b=> b.classList.toggle('on', b.dataset.f===f));
+  refreshCarList(keepId || (carList[carIndex] && carList[carIndex].id));
+  renderCarousel(); renderBig(0);
+}
+function focusDog(id){
+  if(!carList.some(d=>d.id===id)){ setFilter('all', id); return; }
+  setIndex(carList.findIndex(d=>d.id===id));
+}
+document.querySelectorAll('#carFilter .car-chip').forEach(b=> b.addEventListener('click', ()=> setFilter(b.dataset.f)));
+$('carPrev').addEventListener('click', ()=> setIndex(carIndex-1));
+$('carNext').addEventListener('click', ()=> setIndex(carIndex+1));
 
-document.getElementById('tabM').addEventListener('click', ()=>{ selTab='M'; document.getElementById('tabM').classList.add('active'); document.getElementById('tabF').classList.remove('active'); renderCandGrid(); });
-document.getElementById('tabF').addEventListener('click', ()=>{ selTab='F'; document.getElementById('tabF').classList.add('active'); document.getElementById('tabM').classList.remove('active'); renderCandGrid(); });
+// スワイプ（マウスのドラッグ・タッチ・ホイール・矢印キー）
+(function initSwipe(){
+  const vp = $('carViewport'), track = $('carTrack');
+  let down=false, moved=false, startX=0, dx=0, t0=0, downCard=null;
+  vp.addEventListener('pointerdown', e=>{
+    if(e.button!==undefined && e.button!==0) return;
+    down=true; moved=false; startX=e.clientX; dx=0; t0=performance.now();
+    downCard = e.target.closest('.car-card');
+    track.classList.add('dragging'); vp.classList.add('dragging');
+    vp.setPointerCapture(e.pointerId);
+  });
+  vp.addEventListener('pointermove', e=>{
+    if(!down) return;
+    dx = e.clientX - startX;
+    if(Math.abs(dx) > 6) moved = true;
+    if(moved) layoutCarousel(dx);
+  });
+  const end = ()=>{
+    if(!down) return;
+    down=false; track.classList.remove('dragging'); vp.classList.remove('dragging');
+    if(moved){
+      const v = dx / Math.max(1, performance.now()-t0);             // 速さ（px/ms）
+      let steps = -Math.round(dx / CAR_STEP);
+      if(steps===0 && Math.abs(v) > 0.5) steps = v>0 ? -1 : 1;      // 素早く払う（フリック）
+      setIndex(carIndex + steps);
+    } else if(downCard){
+      setIndex(+downCard.dataset.i);                                // タップした犬を中央へ
+    } else {
+      layoutCarousel();
+    }
+  };
+  vp.addEventListener('pointerup', end);
+  vp.addEventListener('pointercancel', end);
+  let wheelLock = 0;
+  vp.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const now = performance.now(); if(now < wheelLock) return;
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if(Math.abs(d) < 8) return;
+    wheelLock = now + 180;
+    setIndex(carIndex + (d>0 ? 1 : -1));
+  }, {passive:false});
+  document.addEventListener('keydown', e=>{
+    if(!$('screen-select').classList.contains('active')) return;
+    if(document.querySelector('.modal-overlay.show')) return;
+    if(e.key==='ArrowLeft') setIndex(carIndex-1);
+    else if(e.key==='ArrowRight') setIndex(carIndex+1);
+  });
+  window.addEventListener('resize', ()=> layoutCarousel());
+})();
+
+// 選択画面をまるごと描き直す（ラウンドの始まりと初期化で使う）
+function renderSelect(){
+  refreshCarList();
+  renderCarousel(); renderBig(0); renderSlots(); renderTrendPanel();
+}
 
 document.getElementById('nextBtn').addEventListener('click', ()=>{
   if(!selectedMaleId || !selectedFemaleId) return;
@@ -347,9 +618,12 @@ function breed(parentA, parentB){
   let size = (parentA.size+parentB.size)/2 + (rand()-0.5)*0.15;
   size = Math.max(0.4, Math.min(1.1, size));
   const sex = rand()<0.5 ? 'M':'F';
+  // 性格：両親から1つずつ受け継ぐ（同じ場合は1つ）
+  const pick = arr => arr && arr.length ? arr[Math.floor(rand()*arr.length)] : null;
+  const temperament = [...new Set([pick(parentA.temperament), pick(parentB.temperament)].filter(Boolean))];
   childCounter++;
   const breedLabel = (parentA.breed===parentB.breed) ? parentA.breed : `ミックス（${parentA.breed} × ${parentB.breed}）`;
-  return { id:'child'+childCounter, name:'子犬 #'+childCounter, breed:breedLabel, sex, color, earType, furLength, size, breedingCount:0 };
+  return { id:'child'+childCounter, name:'子犬 #'+childCounter, breed:breedLabel, sex, color, earType, furLength, size, breedingCount:0, temperament, age:BASE_AGE, shape: blendShape(shapeOf(parentA), shapeOf(parentB)) };
 }
 
 /* ---------- RESULT 画面 ---------- */
@@ -433,7 +707,8 @@ function advanceGeneration(){
   currentIdeal = nextIdeal(currentIdeal);
   selectedMaleId = null; selectedFemaleId = null;
   renderHeader();
-  renderCandGrid(); renderSlots();
+  pickPerson(); carIndex = 0;
+  renderSelect();
   showScreen('screen-select');
   showIdealModal();
 }
@@ -582,8 +857,8 @@ document.getElementById('introStartBtn').addEventListener('click', ()=>{
 
 /* ---------- 初期化 ---------- */
 renderHeader();
-renderCandGrid();
-renderSlots();
+pickPerson();
+renderSelect();
 renderTitleDogs();
 showScreen('screen-title');
 if(aboutVersion){

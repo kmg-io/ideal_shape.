@@ -58,20 +58,53 @@
     <button class="op-btn" id="introStartBtn">はじめる</button>
   </div>
 
-  <!-- SELECT SCREEN -->
+  <!-- SELECT SCREEN（メイン画面） -->
   <div class="screen" id="screen-select">
-    <div class="tabs">
-      <div class="tab-btn active" id="tabM" data-sex="M">♂ オス</div>
-      <div class="tab-btn" id="tabF" data-sex="F">♀ メス</div>
-    </div>
-    <div class="warning-msg" id="warningMsg"></div>
-    <div class="select-body">
-      <div class="cand-grid" id="candGrid"></div>
-      <div class="slots">
-        <div class="slot" id="slotF"><div class="slot-label">♀ メス</div><div class="sname">未選択</div></div>
-        <div class="slot" id="slotM"><div class="slot-label">♂ オス</div><div class="sname">未選択</div></div>
-        <button class="next-btn" id="nextBtn" disabled>次へ</button>
+    <div class="sel-layout">
+
+      <!-- 左：選んだ犬の大きな情報 ＋ 横スワイプの一覧 -->
+      <div class="sel-left">
+        <div class="big-card" id="bigCard">
+          <div class="big-info" id="bigInfo"></div>
+          <div class="big-dog" id="bigDog"></div>
+          <button class="pick-btn" id="pickBtn">この犬を親にする</button>
+        </div>
+        <div class="car-bar">
+          <div class="car-filter" id="carFilter">
+            <span>表示</span>
+            <button class="car-chip on" data-f="all">すべて</button>
+            <button class="car-chip" data-f="M">♂</button>
+            <button class="car-chip" data-f="F">♀</button>
+          </div>
+          <div class="warning-msg" id="warningMsg"></div>
+        </div>
+        <div class="car-wrap">
+          <button class="car-arrow" id="carPrev" aria-label="前の犬">‹</button>
+          <div class="car-viewport" id="carViewport">
+            <div class="car-track" id="carTrack"></div>
+            <div class="car-focus"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <button class="car-arrow" id="carNext" aria-label="次の犬">›</button>
+        </div>
       </div>
+
+      <!-- 右：市場の流行 ＋ 選んだ親犬の枠 -->
+      <div class="sel-right">
+        <div class="trend-panel">
+          <div class="trend-label">今季の市場の流行</div>
+          <div class="scene">
+            <div class="person" id="trendPerson"></div>
+            <div class="bubble"><div class="icon-box" id="trendDog"></div></div>
+          </div>
+          <div class="trend-desc" id="trendDesc"></div>
+        </div>
+        <div class="parents">
+          <div class="pslot-wrap"><div class="psym m">♂</div><div class="pslot" id="slotM"></div></div>
+          <div class="pslot-wrap"><div class="psym f">♀</div><div class="pslot" id="slotF"></div></div>
+        </div>
+        <button class="next-btn" id="nextBtn" disabled>交配へ進む</button>
+      </div>
+
     </div>
   </div>
 
